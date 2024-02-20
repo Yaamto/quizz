@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  nextjs-app:
+    build:
+      context: ./react-quizz
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+
+  nestjs-app:
+    build:
+      context: ./nest-quizz
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+

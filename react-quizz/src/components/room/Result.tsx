@@ -16,11 +16,10 @@ interface Props {
 const Result = ({usersAnswers, room, user, nextQuestion, socket}: Props) => {
     const [users, setUsers] = useState<any[]>([]);
 
-    useEffect(() => {
         socket.on("users", (users: any) => {
             setUsers(users);
         });
-    }, [])
+
     return (
          <div>
          <h1 className='text-2xl font-bold'>{room?.nbQuestions === room?.quizz?.length ? "Quizz Finished !": "Results"}</h1>

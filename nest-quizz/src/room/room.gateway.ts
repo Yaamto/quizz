@@ -4,7 +4,7 @@ import OpenAI from 'openai';
 import { Socket } from 'socket.io';
 import { User, room, UserAnswer, Question } from './room.interface';
 
-const apiKey = "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";
+const apiKey = "";
 const openai = new OpenAI({
   apiKey: apiKey
 });
