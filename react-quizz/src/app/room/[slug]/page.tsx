@@ -51,7 +51,9 @@ const page = ({ params }: { params: { slug: string } }) => {
     socket.on("room", handleRoomEvent);
     socket.on('time-up', handleTimeUp);
     socket.on('new-question', handleNewQuestion);
-
+    socket.on("clue", (clue: string) => {
+      console.log(clue);
+    });
   }, []);
 
   const handleStartQuizz = () => {
@@ -82,7 +84,7 @@ const nextQuestion = () => {
       ? 
       (<Result room={room} usersAnswers={usersAnswers} user={user} nextQuestion={nextQuestion} socket={socket} />) 
       : 
-      (<QuizzDisplay room={room} selectedAnswer={selectedAnswer} timeLeft={timeLeft} handleSubmitAnswer={handleSubmitAnswer} />)
+      (<QuizzDisplay room={room} selectedAnswer={selectedAnswer} timeLeft={timeLeft} handleSubmitAnswer={handleSubmitAnswer} socket={socket} />)
       }
     </div>
   );

@@ -26,6 +26,19 @@ async function generateQuestion(room: room) {
   return chatCompletion.choices[0].message.content
 }
 
+//Permet de générer un indice pour une question
+async function generateClue(question: string) {
+  const chatCompletion = await openai.chat.completions.create({
+    messages: [
+      { role: 'system', content: `Generate a clue for the question : ${question}` },
+      { role: 'user', content: `Generate a clue for the question : ${question}`}
+    ],
+    model: 'gpt-3.5-turbo',
+  });
+  
+  return chatCompletion.choices[0].message.content
+}
+
 @WebSocketGateway({ cors: true })
 export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -221,6 +234,15 @@ handleAnswerSubmit(client: Socket, { roomId, answer }: { roomId: string; answer:
   }
 }
 
+@SubscribeMessage('get-clue')
+async handleGetClue(client: any, payload: any) {
+  const room = this.rooms.find(r => r.id === payload.id);
+  if (room) {
+    const clue = await generateClue(room.quizz[room.quizz.length - 1].question);
+    console.log(clue)
+    this.server.to(room.id).emit('clue', clue);
+  }
+}
   handleConnection(client: Socket, payload: any) {
     console.log('client connected ', client.handshake.auth);
     this.users.push({
