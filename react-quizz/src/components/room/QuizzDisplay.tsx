@@ -14,7 +14,7 @@ const QuizzDisplay = ({room, selectedAnswer, timeLeft, handleSubmitAnswer}: Prop
         <div className="flex justify-center items-center flex-col gap-3 bg-gray-100 min-h-[80vh]">
           <div className="text-center p-3 max-w-2xl bg-white rounded-lg border border-gray-200 shadow-md dark:bg-gray-800 dark:border-gray-700">
             <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
-              Question {room?.quizz && room?.quizz?.length + 1}: {room?.quizz?.[room?.quizz?.length -1]?.question}
+              Question {room?.quizz && room.quizz.length > 0 ? room?.quizz?.length : 1 }: {room?.quizz?.[room?.quizz?.length -1]?.question}
             </h2>
             <div className="text-gray-600">Temps restant : {timeLeft} secondes</div>
             <ul className="flex flex-col gap-4 md:flex-row md:flex-wrap justify-center items-center">

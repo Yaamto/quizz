@@ -78,7 +78,7 @@ const nextQuestion = () => {
       ? 
       (<RoomInfos room={room} setRoom={setRoom} handleStartQuizz={handleStartQuizz} user={user} />)  
       : 
-      usersAnswers?.length > 0 || timeLeft == 0 
+      usersAnswers?.length > 0 || timeLeft == 0 || room?.isQuestionResults
       ? 
       (<Result room={room} usersAnswers={usersAnswers} user={user} nextQuestion={nextQuestion} socket={socket} />) 
       : 

@@ -12,6 +12,7 @@ interface Room {
     nbQuestions?: number;
     quizz?: Question[];
     isStarted: boolean;
+    isQuestionResults: boolean;
   }
 
   export default Room;

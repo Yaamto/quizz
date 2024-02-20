@@ -2,46 +2,12 @@ import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGa
 import { time } from 'console';
 import OpenAI from 'openai';
 import { Socket } from 'socket.io';
+import { User, room, UserAnswer, Question } from './room.interface';
 
-const apiKey = "";
+const apiKey = "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";
 const openai = new OpenAI({
   apiKey: apiKey
 });
-
-interface User {
-  id: string;
-  username?: string;
-  avatar?: string;
-  point?: number;
-}
-
-interface UserAnswer {
-  user: User;
-  answer: string;
-  timeStamps: number;
-}
-
-interface room {
-  id: string;
-  creator: User;
-  clients: User[];
-  difficulty: string;
-  theme: string;
-  isPrivate: boolean;
-  nbQuestions: number;
-  isRandomTheme: boolean;
-  quizz?: Question[];
-  isStarted: boolean;
-}
-
-interface Question {
-  id: string;
-  question: string;
-  possibleAnswers: string[];
-  answer: string;
-  userAnswers?: UserAnswer[];
-}
-
 
 async function generateQuestion(room: room) {
   //get all questions from the room and put them in a string
@@ -66,15 +32,8 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Socket;
   users: User[] = [];
   rooms: room[] = []; 
-  roomAnswers: { [roomId: string]: UserAnswer[] } = {};
-  themes: string[] = ['Geography', 'History', 'Science', 'Sports', 'Art', 'Celebrities', 'Animals', 'Politics', 'General Knowledge'];
-  difficulties: string[] = ['Easy', 'Medium', 'Hard'];
 
-  @SubscribeMessage('message')
-  handleMessage(client: any, payload: any): string {
-    return 'Hello world!';
-  }
-
+  //Permet de set le username et l'avatar de l'utilisateur
   @SubscribeMessage('user-set')
   handleUsernameSet(client: any, payload: any): void {
     const c = this.users.find((c) => c.id === client.id);
@@ -83,7 +42,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       c.avatar = payload.avatar;
     }
   }
-
+// Permet de créer une room
   @SubscribeMessage('room-create')
   async handleRoomCreate(client: any, payload: any) {
     const c = this.users.find((c) => c.id === client.id);
@@ -98,15 +57,17 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
         nbQuestions: payload.nbQuestions,
         isRandomTheme: payload.isRandomTheme,
         quizz: [],
-        isStarted: false
+        isStarted: false,
+        isQuestionResults: false
       };
       this.rooms.push(room);
+      //On rejoins la room puis on emit le changement pour tout les clients, on met à jour aussi la room
       client.join(room.id);
       this.server.emit('rooms', this.rooms);
       this.server.to(room.id).emit('room', room);
     }
   }
-  
+  //Permet de renvoyer la room
   @SubscribeMessage('room')
   handleRoom(client: any, payload: any) {
     const room = this.rooms.find((r) => r.id === payload);
@@ -114,23 +75,24 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.emit('room', room);
     }
   }
-
+// Permet de récupérer toutes les rooms
   @SubscribeMessage('get-rooms')
   handleRooms(client: any) {
     this.server.emit('rooms', this.rooms);
   }
-
+// Permet de rejoindre une room
   @SubscribeMessage('join-room')
   handleJoinRoom(client: any, payload: any) {
     // Quitter toutes les rooms précédentes
   for (const room of this.rooms) {
     const index = room.clients.findIndex(u => u.id === client.id);
+    const user = this.users.find(u => u.id === client.id);
+    user.point = 0;
     if (index !== -1) {
       room.clients.splice(index, 1);
       client.leave(room.id);
     }
   }
-
   // Rejoindre la nouvelle room
   const room = this.rooms.find(r => r.id === payload);
   if (room) {
@@ -138,13 +100,14 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (joiningUser && !room.clients.some(u => u.id === client.id)) {
       room.clients.push(joiningUser);
       client.join(room.id); // Rejoindre la room avec Socket.IO
-
+      // envoyer 'room' event à tout les clients dans la room
       this.server.to(room.id).emit('room', room);
+      // Indiquer qu'il y a quelqu'un qui a rejoins cette room à tout les clients
       this.server.emit('rooms', this.rooms);
     }
   }
   }
-
+// Permet de quitter une room
   @SubscribeMessage('leave-room')
 handleLeaveRoom(client: Socket, roomId: string) {
   // leave all rooms previously joined
@@ -159,6 +122,7 @@ handleLeaveRoom(client: Socket, roomId: string) {
     }
   }
 }
+// Evenement permettant de démarrer le quizz
 @SubscribeMessage('start-quizz')
 handleStartQuizz(client: any, roomId: string) {
   const room = this.rooms.find(r => r.id === roomId);
@@ -167,64 +131,76 @@ handleStartQuizz(client: any, roomId: string) {
     this.server.to(room.id).emit('room', room);
   }
 }
-
+// Fait appel à l'api openai pour générer une question
 @SubscribeMessage('create-question')
 async handleCreateQuestion(client: any, payload: any) {
   const room = this.rooms.find(r => r.id === payload.id);
   if (room) {
-    const test = await generateQuestion(room);
-    console.log(test)
-    const question = await JSON.parse(test);
+    const aiQuestion = await generateQuestion(room);
+    const question = await JSON.parse(aiQuestion);
 
-    console.log(question)
-
-    //check if question is an array of objects so take the first object but if it's an object take it directly
+    //Créer le timestamp lorsque la question est générée
     const timeStamp = Date.now();
+    // Vérifie si la question est un tableau ou non, si oui, on push la première question
     if (Array.isArray(question)) {
       const questionToPush = question[0];
       questionToPush.id = Math.random().toString(36).substr(2, 9);
       room.quizz.push(questionToPush);
+      //Sinon il récupère la question générée
     } else {
       question.id = Math.random().toString(36).substr(2, 9);
       room.quizz.push(question);
     }
-
+    room.isQuestionResults = false;
     this.server.to(room.id).emit('room', room);
     this.server.to(room.id).emit('new-question');
-    let startTime = 5
-    let timeLeft = 5; // Temps en secondes
-    
-    const timerId = setInterval(() => {
-      this.server.to(room.id).emit('timer', { timeLeft });
-      timeLeft -= 1;
 
-      if (timeLeft < 0) {
-        clearInterval(timerId);
-        const answers = room.quizz[room.quizz.length - 1].userAnswers;
-        const users = []
-        for (const answer of answers) {
-          if (answer.answer === room.quizz[room.quizz.length - 1].answer) {
-            const timeTaken = answer.timeStamps - timeStamp
-            console.log(timeTaken)
-            console.log(timeLeft - (timeTaken / 1000))
-            const pointsEarned = timeTaken > 4000 ? 100 : 100 * (startTime - (timeTaken / 1000));
-
-            // attribuer les points a l'utilisateur 
-            const user = room.clients.find((u) => u.id === answer.user.id);
-            user.point += Math.round(Math.max(0, pointsEarned));
-            users.push(user);
-          }else {
-            const user = room.clients.find((u) => u.id === answer.user.id);
-            users.push(user);
-          }
-        }
-        this.server.to(room.id).emit('users', users);
-        this.server.to(room.id).emit('time-up', {answers});
-      }
-    }, 1000);
+    this.createTimer(timeStamp, room);
   }
 }
+// Fonction permettant de créer le timer et de gérer les réponses
+createTimer = (timeStamp: any, room: room) => {
+  let startTime = 5
+  let timeLeft = 5;
 
+  const timerId = setInterval(() => {
+    this.server.to(room.id).emit('timer', { timeLeft });
+    timeLeft -= 1;
+
+    if (timeLeft < 0) {
+      clearInterval(timerId);
+      const answers = room.quizz[room.quizz.length - 1].userAnswers;
+      const users = []
+      if(!answers) {
+        room.isQuestionResults = true;
+        this.server.to(room.id).emit('users', users);
+        this.server.to(room.id).emit('time-up', {answers});
+        return;
+      }
+      for (const answer of answers) {
+        if (answer.answer === room.quizz[room.quizz.length - 1].answer) {
+          // calculer le temps pris par l'utilisateur pour répondre
+          const timeTaken = answer.timeStamps - timeStamp
+          // calculer les points gagnés par l'utilisateur
+          const pointsEarned = timeTaken > 4000 ? 100 : 100 * (startTime - (timeTaken / 1000));
+          // attribuer les points a l'utilisateur 
+          const user = room.clients.find((u) => u.id === answer.user.id);
+          user.point += Math.round(Math.max(0, pointsEarned));
+          users.push(user);
+        }else {
+          const user = room.clients.find((u) => u.id === answer.user.id);
+          users.push(user);
+        }
+      }
+      room.isQuestionResults = true;
+      //Renvoie tout les utilisateurs et les points
+      this.server.to(room.id).emit('users', users);
+      // renvoie les réponses des utilistateurs
+      this.server.to(room.id).emit('time-up', {answers});
+    }
+  }, 1000);
+}
+// Evènement permettant de soumettre une réponse
 @SubscribeMessage('submit-answer')
 handleAnswerSubmit(client: Socket, { roomId, answer }: { roomId: string; answer: string }) {
   const user = this.users.find((u) => u.id === client.id);
@@ -234,9 +210,7 @@ handleAnswerSubmit(client: Socket, { roomId, answer }: { roomId: string; answer:
   if (!question.userAnswers) {
     question.userAnswers = [];
   }
-
   // check if user already answered, if yes, update the user's answer
-  
   const index = question.userAnswers.findIndex((ua) => ua.user.id === user.id);
   if (index !== -1) {
     question.userAnswers[index].answer = answer;
