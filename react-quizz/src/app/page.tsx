@@ -51,8 +51,6 @@ export default function Home() {
     setIsUserSet(true);
   };
 
-
-
   const isButtonDisabled = !selectedAvatar || !username;
 
   return (

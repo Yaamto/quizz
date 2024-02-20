@@ -15,7 +15,7 @@ const page = ({ params }: { params: { slug: string } }) => {
   const [index, setIndex] = useState<number>(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [user, setUser] = useState<any>("");
-  const [timeLeft, setTimeLeft] = useState(5); // Initialisez avec la durée du timer
+  const [timeLeft, setTimeLeft] = useState<number | null>(5); // Initialisez avec la durée du timer
   const [usersAnswers, setUsersAnswers] = useState<any[]>([]);
   const socket = useStore((state: any) => state.socket);
 
@@ -37,7 +37,7 @@ const page = ({ params }: { params: { slug: string } }) => {
     }
 
     const handleTimerUpdate = (data: any) => {
-      setTimeLeft(data.timeLeft);
+          setTimeLeft(data.timeLeft);
     }
 
     const handleNewQuestion = () => {
@@ -78,7 +78,7 @@ const nextQuestion = () => {
       ? 
       (<RoomInfos room={room} setRoom={setRoom} handleStartQuizz={handleStartQuizz} user={user} />)  
       : 
-      usersAnswers?.length > 0 || timeLeft == 0
+      usersAnswers?.length > 0 || timeLeft == 0 
       ? 
       (<Result room={room} usersAnswers={usersAnswers} user={user} nextQuestion={nextQuestion} socket={socket} />) 
       : 

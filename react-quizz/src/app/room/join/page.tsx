@@ -26,6 +26,7 @@ const join = () => {
         socket.emit('join-room', privateRoomId);
         router.push(`/room/${privateRoomId}`)
       }
+      
   useEffect(() => {
     setUser(socket.auth);
     socket.on("rooms", (rooms: any) => {

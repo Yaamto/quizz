@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 interface Props {
     room: Room | null;
     selectedAnswer: string;
-    timeLeft: number;
+    timeLeft: number | null;
     handleSubmitAnswer: (answer: string) => void;
 }
 
