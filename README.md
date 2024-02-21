@@ -9,6 +9,7 @@ Cela vous permettra de lancer les containers front et back afin qu'ils puissent 
  **Clé API openAI**
  Nous avons essayé de créer une variable d'environnement en suivant la doc de NestJS mais malheureusement, pour quelconque raison, cela ne fonctionnait pas. Alors il faudra renseigner la clé API d'openAI directement dans le code comme ci dessous : 
  ![ApiKey](https://github.com/Yaamto/cicdproject/assets/73040102/f3fad5af-6cbd-4e4a-801d-164a5db2f019)
+ 
 A la ligne 7 en remplaçant les guillemets par votre clé API.
 
 
